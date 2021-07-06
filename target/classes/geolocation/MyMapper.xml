@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="geolocation.ISearchRadius">
+
+	<!-- 
+		searchCount(int distance, double latTxt, double lngTxt);
+		매개변수는 순서대로 거리(반경), 위도, 경도
+			=> 현재위치에서 시설물과의 거래를 측정한후 거리(반경)보다 작은
+				레코드를 카운트 한다.
+	 -->
+	<select id="searchCount" resultType="int">
+		SELECT COUNT(*)
+		FROM global_facility
+		WHERE trunc(to_number(DISTNACE_WGS84(#{param2}, #{param3},
+						hp_latitude, hp_longitude)),5)<![CDATA[<=]]>#{param1}
+	</select>
+	
+	<!-- 계산된 구간의 시설 데이터를 출력하기 위한 쿼리문 실행 -->
+	<select id="searchRadius" resultType="geolocation.MyFacilityDTO">
+		SELECT * FROM (
+			SELECT Tb.*, rownum rNum FROM (
+				SELECT
+					hp_name, hp_sido, hp_gugun, hp_addr, hp_url, hp_latitude, hp_longitude,
+					trunc(to_number(DISTNACE_WGS84(#{param2}, #{param3},
+						hp_latitude, hp_longitude)),5) AS disKM
+				FROM global_facility
+				WHERE trunc(to_number(DISTNACE_WGS84(#{param2}, #{param3},
+								hp_latitude, hp_longitude)),5)<![CDATA[<=]]>#{param1}
+				ORDER BY disKM ASC
+			) Tb
+		)
+		WHERE rNum BETWEEN ${param4} AND ${param5}
+	</select>
+	
+</mapper>  
